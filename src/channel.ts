@@ -7,6 +7,8 @@ import {
 import { z } from "zod";
 import { PintoWebhookPayload, PintoWebhookReceiveRequest } from "./types.js";
 
+const stripTrailingSlash = (url: string) => url.replace(/\/+$/, "");
+
 let runtime: RuntimeEnv;
 
 export const setPintoRuntime = (r: RuntimeEnv) => {
@@ -39,7 +41,9 @@ async function sendPintoText(params: {
   text: string;
 }) {
   const account = getPintoChannelConfig(params.cfg, params.accountId);
-  const apiUrl = account?.apiUrl ?? "https://api-dev.pinto-app.com/";
+  const apiUrl = stripTrailingSlash(
+    account?.apiUrl ?? "https://api-dev.pinto-app.com",
+  );
   const botId = account?.botId?.trim();
   if (!botId) {
     throw new Error("Pinto botId is not configured");
@@ -160,7 +164,9 @@ export const pintoPlugin: ChannelPlugin<any, any> & { configSchema?: any } = {
 
     sendMedia: async ({ to, text, mediaUrl, accountId, cfg }) => {
       const account = getPintoChannelConfig(cfg, accountId);
-      const apiUrl = account?.apiUrl ?? "https://api-dev.pinto-app.com/";
+      const apiUrl = stripTrailingSlash(
+        account?.apiUrl ?? "https://api-dev.pinto-app.com",
+      );
       const botId = account?.botId?.trim();
 
       if (!botId) {
