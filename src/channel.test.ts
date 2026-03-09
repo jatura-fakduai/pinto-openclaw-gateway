@@ -22,6 +22,7 @@ describe("pintoPlugin", () => {
             accounts: {
               bot1: {
                 apiUrl: "https://api.pinto-app.com",
+                botId: "bot-123",
                 webhookSecret: "secret123",
               },
             },
@@ -56,7 +57,18 @@ describe("pintoPlugin", () => {
           to: "chat1",
           text: "hello",
           accountId: "bot1",
-          cfg: { channels: { pinto: { accounts: { bot1: { apiUrl: "https://api.pinto-app.com" } } } } },
+          cfg: {
+            channels: {
+              pinto: {
+                accounts: {
+                  bot1: {
+                    apiUrl: "https://api.pinto-app.com",
+                    botId: "bot-123",
+                  },
+                },
+              },
+            },
+          },
         } as any),
       ).rejects.toThrow();
     });
@@ -68,11 +80,32 @@ describe("pintoPlugin", () => {
         to: "chat1",
         text: "hello",
         accountId: "bot1",
-        cfg: { channels: { pinto: { accounts: { bot1: { apiUrl: "https://api.pinto-app.com" } } } } },
+        cfg: {
+          channels: {
+            pinto: {
+              accounts: {
+                bot1: {
+                  apiUrl: "https://api.pinto-app.com",
+                  botId: "bot-123",
+                  webhookSecret: "secret123",
+                },
+              },
+            },
+          },
+        },
       } as any);
 
       expect(result).toHaveProperty("channel", "pinto");
       expect(result).toHaveProperty("messageId");
+      expect(global.fetch).toHaveBeenCalledWith(
+        "https://api.pinto-app.com/v1/bots/webhook/receive",
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            "Content-Type": "application/json",
+            "X-Pinto-Secret": "secret123",
+          }),
+        }),
+      );
     });
   });
 
@@ -94,7 +127,18 @@ describe("pintoPlugin", () => {
           text: "check this",
           mediaUrl: "https://img.example.com/a.png",
           accountId: "bot1",
-          cfg: { channels: { pinto: { accounts: { bot1: { apiUrl: "https://api.pinto-app.com" } } } } },
+          cfg: {
+            channels: {
+              pinto: {
+                accounts: {
+                  bot1: {
+                    apiUrl: "https://api.pinto-app.com",
+                    botId: "bot-123",
+                  },
+                },
+              },
+            },
+          },
         } as any),
       ).rejects.toThrow();
     });
@@ -107,11 +151,32 @@ describe("pintoPlugin", () => {
         text: "check this",
         mediaUrl: "https://img.example.com/a.png",
         accountId: "bot1",
-        cfg: { channels: { pinto: { accounts: { bot1: { apiUrl: "https://api.pinto-app.com" } } } } },
+        cfg: {
+          channels: {
+            pinto: {
+              accounts: {
+                bot1: {
+                  apiUrl: "https://api.pinto-app.com",
+                  botId: "bot-123",
+                  webhookSecret: "secret123",
+                },
+              },
+            },
+          },
+        },
       } as any);
 
       expect(result).toHaveProperty("channel", "pinto");
       expect(result).toHaveProperty("messageId");
+      expect(global.fetch).toHaveBeenCalledWith(
+        "https://api.pinto-app.com/v1/bots/webhook/receive",
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            "Content-Type": "application/json",
+            "X-Pinto-Secret": "secret123",
+          }),
+        }),
+      );
     });
   });
 });

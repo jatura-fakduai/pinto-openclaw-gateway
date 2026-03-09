@@ -8,7 +8,6 @@ export interface PintoWebhookPayload {
   image_url?: string;
   chat_id: string;
   bot_id: string;
-  api_key?: string;
 }
 
 /**

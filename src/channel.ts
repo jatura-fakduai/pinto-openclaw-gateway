@@ -8,6 +8,7 @@ import { z } from "zod";
 import { PintoWebhookPayload, PintoWebhookReceiveRequest } from "./types.js";
 
 const stripTrailingSlash = (url: string) => url.replace(/\/+$/, "");
+const PINTO_SECRET_HEADER = "x-pinto-secret";
 
 let runtime: RuntimeEnv;
 
@@ -34,6 +35,28 @@ const getPintoChannelConfig = (cfg: any, accountId?: string | null) => {
   };
 };
 
+const buildPintoHeaders = (webhookSecret?: string) => {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+  const secret = webhookSecret?.trim();
+  if (secret) {
+    headers["X-Pinto-Secret"] = secret;
+  }
+  return headers;
+};
+
+const getRequestHeader = (
+  req: IncomingMessage,
+  headerName: string,
+): string | undefined => {
+  const value = req.headers[headerName.toLowerCase()];
+  if (Array.isArray(value)) {
+    return value[0];
+  }
+  return value ?? undefined;
+};
+
 async function sendPintoText(params: {
   cfg: any;
   accountId?: string | null;
@@ -45,6 +68,7 @@ async function sendPintoText(params: {
     account?.apiUrl ?? "https://api-dev.pinto-app.com",
   );
   const botId = account?.botId?.trim();
+  const webhookSecret = account?.webhookSecret?.trim();
   if (!botId) {
     throw new Error("Pinto botId is not configured");
   }
@@ -57,7 +81,7 @@ async function sendPintoText(params: {
 
   const res = await fetch(`${apiUrl}/v1/bots/webhook/receive`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: buildPintoHeaders(webhookSecret),
     body: JSON.stringify(payload),
   });
 
@@ -168,6 +192,7 @@ export const pintoPlugin: ChannelPlugin<any, any> & { configSchema?: any } = {
         account?.apiUrl ?? "https://api-dev.pinto-app.com",
       );
       const botId = account?.botId?.trim();
+      const webhookSecret = account?.webhookSecret?.trim();
 
       if (!botId) {
         throw new Error("Pinto botId is not configured");
@@ -182,7 +207,7 @@ export const pintoPlugin: ChannelPlugin<any, any> & { configSchema?: any } = {
 
       const res = await fetch(`${apiUrl}/v1/bots/webhook/receive`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: buildPintoHeaders(webhookSecret),
         body: JSON.stringify(payload),
       });
 
@@ -219,6 +244,14 @@ export const pintoPlugin: ChannelPlugin<any, any> & { configSchema?: any } = {
         accountId: ctx.accountId,
         handler: async (req, res) => {
           try {
+            const configuredSecret = account?.webhookSecret?.trim();
+            const inboundSecret = getRequestHeader(req, PINTO_SECRET_HEADER);
+            if (configuredSecret && inboundSecret !== configuredSecret) {
+              res.statusCode = 401;
+              res.end(JSON.stringify({ error: "Invalid webhook secret" }));
+              return true;
+            }
+
             const payload = await readJsonBody(req);
             if (!payload.bot_id || !payload.chat_id) {
               res.statusCode = 400;
