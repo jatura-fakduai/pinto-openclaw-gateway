@@ -18,7 +18,7 @@ export const setPintoRuntime = (r: RuntimeEnv) => {
 const PintoChannelConfigSchema = z
   .object({
     enabled: z.boolean().default(true),
-    apiUrl: z.string().trim().min(1).default("https://api-dev.pinto-app.com/"),
+    apiUrl: z.string().trim().min(1).default("https://api.pinto-app.com/"),
     botId: z.string().trim().min(1).optional(),
     webhookSecret: z.string().trim().optional(),
   })
