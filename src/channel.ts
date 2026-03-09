@@ -1,8 +1,6 @@
 import type { ChannelPlugin, RuntimeEnv } from "openclaw/plugin-sdk";
-import {
-  PintoPluginConfig,
-  PintoWebhookReceiveRequest,
-} from "./types.js";
+import { buildChannelConfigSchema } from "openclaw/plugin-sdk";
+import { PintoPluginConfig, PintoWebhookReceiveRequest } from "./types.js";
 
 let runtime: RuntimeEnv;
 
@@ -22,24 +20,24 @@ export const pintoPlugin: ChannelPlugin<any, any> & { configSchema?: any } = {
     detailLabel: "Pinto Chat via API",
     description: "Adapter for Pinto Chat platform",
   } as any,
-  configSchema: {
+  configSchema: buildChannelConfigSchema({
     type: "object",
-    additionalProperties: false,
+    additionalProperties: true,
     properties: {
+      enabled: {
+        type: "boolean",
+      },
       pintoApiUrl: {
         type: "string",
         title: "Pinto API URL",
-        description: "The base URL of the Pinto API",
         default: "http://localhost:1323",
       },
       pintoWebhookSecret: {
         type: "string",
         title: "Webhook Secret",
-        description: "Secret key for authenticating requests from Pinto",
       },
     },
-    required: [],
-  } as any,
+  } as any),
   capabilities: {
     chatTypes: ["direct"],
     media: true,
@@ -74,8 +72,9 @@ export const pintoPlugin: ChannelPlugin<any, any> & { configSchema?: any } = {
 
   outbound: {
     deliveryMode: "direct",
-    sendText: async ({ to, text, accountId, config }) => {
-      const { pintoApiUrl } = config as PintoPluginConfig;
+    sendText: async ({ to, text, accountId, cfg }) => {
+      const pintoConfig = (cfg as any)?.channels?.pinto as PintoPluginConfig;
+      const pintoApiUrl = pintoConfig?.pintoApiUrl ?? "http://localhost:1323";
 
       const payload: PintoWebhookReceiveRequest = {
         bot_id: accountId!,
@@ -96,8 +95,9 @@ export const pintoPlugin: ChannelPlugin<any, any> & { configSchema?: any } = {
       return { channel: "pinto", messageId: Date.now().toString() };
     },
 
-    sendMedia: async ({ to, text, mediaUrl, accountId, config }) => {
-      const { pintoApiUrl } = config as PintoPluginConfig;
+    sendMedia: async ({ to, text, mediaUrl, accountId, cfg }) => {
+      const pintoConfig = (cfg as any)?.channels?.pinto as PintoPluginConfig;
+      const pintoApiUrl = pintoConfig?.pintoApiUrl ?? "http://localhost:1323";
 
       const payload: PintoWebhookReceiveRequest = {
         bot_id: accountId!,

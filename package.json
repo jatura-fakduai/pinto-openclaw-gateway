@@ -1,6 +1,6 @@
 {
     "name": "pinto-openclaw-gateway",
-    "version": "1.1.5",
+    "version": "1.1.8",
     "description": "OpenClaw Channel Plugin for Pinto Chat",
     "type": "module",
     "main": "dist/index.js",
@@ -23,6 +23,12 @@
         "gateway",
         "channel"
     ],
+    "channel": {
+        "id": "pinto",
+        "label": "Pinto",
+        "selectionLabel": "Pinto (Chat Bot)",
+        "blurb": "Pinto App Thailand"
+    },
     "files": [
         "dist",
         "openclaw.plugin.json",
@@ -44,14 +50,14 @@
         "test:watch": "vitest",
         "prepare": "npm run build"
     },
+    "devDependencies": {
+        "@types/node": "^20.11.0",
+        "openclaw": "^2026.3.8",
+        "tsx": "^4.7.0",
+        "typescript": "^5.4.0",
+        "vitest": "^1.6.0"
+    },
     "peerDependencies": {
         "openclaw": ">=2026.0.0"
-    },
-    "dependencies": {},
-    "devDependencies": {
-        "typescript": "^5.4.0",
-        "tsx": "^4.7.0",
-        "vitest": "^1.6.0",
-        "@types/node": "^20.11.0"
     }
 }

@@ -1,38 +1,14 @@
 {
-    "id": "pinto",
+    "id": "pinto-openclaw-gateway",
     "name": "Pinto Chat",
     "description": "Integration with Pinto Chat API",
-    "version": "1.0.0",
-    "author": "Antigravity",
+    "version": "1.1.8",
     "channels": [
         "pinto"
     ],
     "configSchema": {
         "type": "object",
         "additionalProperties": false,
-        "properties": {
-            "pintoApiUrl": {
-                "type": "string",
-                "title": "Pinto API URL",
-                "description": "The base URL of the Pinto API",
-                "default": "http://localhost:1323"
-            },
-            "pintoWebhookSecret": {
-                "type": "string",
-                "title": "Webhook Secret",
-                "description": "Secret key for authenticating requests from Pinto"
-            }
-        },
-        "required": []
-    },
-    "uiHints": {
-        "pintoApiUrl": {
-            "label": "Pinto API URL",
-            "placeholder": "https://api.pinto-app.com"
-        },
-        "pintoWebhookSecret": {
-            "label": "Webhook Secret",
-            "sensitive": true
-        }
+        "properties": {}
     }
 }

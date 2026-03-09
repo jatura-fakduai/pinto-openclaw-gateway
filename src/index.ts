@@ -3,14 +3,14 @@ import { pintoPlugin, setPintoRuntime } from "./channel.js";
 import { PintoWebhookPayload } from "./types.js";
 
 const plugin = {
-  id: "pinto",
+  id: "pinto-openclaw-gateway",
   name: "Pinto Chat",
   description: "Plugin to connect Pinto Chat with OpenClaw AI Agents",
 
   register(api: OpenClawPluginApi) {
-    const logger = api.runtime?.logger;
+    const logger = (api.runtime as any)?.logger;
 
-    setPintoRuntime(api.runtime);
+    setPintoRuntime(api.runtime as any);
 
     api.registerChannel({
       plugin: pintoPlugin,
@@ -30,7 +30,7 @@ const plugin = {
             return true;
           }
 
-          await api.runtime.message.receive({
+          await (api.runtime as any).message.receive({
             channelId: "pinto",
             accountId: payload.bot_id,
             senderId: payload.user_id,
