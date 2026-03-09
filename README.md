@@ -1,73 +1,68 @@
-# Pinto OpenClaw Gateway Plugin
+# @fakduai/pinto-app-openclaw
 
 [ภาษาไทย](#ภาษาไทย) | [English](#english)
 
-This plugin connects Pinto Chat with OpenClaw through a channel plugin. It receives inbound webhooks from Pinto, forwards them to an OpenClaw agent, and sends the agent response back to Pinto.
+OpenClaw channel plugin for Pinto Chat. It receives webhook events from Pinto, forwards them to an OpenClaw agent, and sends the final reply back to Pinto.
 
 ## ภาษาไทย
 
 ### ภาพรวม
 
-ปลั๊กอินนี้ใช้สำหรับเชื่อมต่อ Pinto Chat เข้ากับ OpenClaw โดยมี flow หลักดังนี้
+`@fakduai/pinto-app-openclaw` คือ OpenClaw channel plugin สำหรับเชื่อมต่อ Pinto Chat กับ OpenClaw agent
+
+flow การทำงาน:
 
 1. ผู้ใช้ส่งข้อความใน Pinto
-2. Pinto API เรียก Webhook ของ OpenClaw ที่ `/plugins/pinto/webhook`
-3. ปลั๊กอินส่งข้อความเข้า OpenClaw agent
-4. เมื่อ agent ตอบกลับ ปลั๊กอินจะส่งข้อความกลับไปที่ Pinto API ผ่าน `POST /v1/bots/webhook/receive`
+2. Pinto API เรียก webhook ของ OpenClaw ที่ `/plugins/pinto/webhook`
+3. ปลั๊กอินส่งข้อความเข้า agent ใน OpenClaw
+4. เมื่อ agent ตอบกลับ ปลั๊กอินจะส่งข้อความกลับไปที่ Pinto ผ่าน `POST /v1/bots/webhook/receive`
 
-ปลั๊กอินรองรับ:
+ความสามารถหลัก:
 
-- ข้อความแบบ direct chat
-- ส่งข้อความกลับพร้อม `media_url`
-- การใช้ `Webhook Secret` ผ่าน header `X-Pinto-Secret`
-- การตั้งค่าใน OpenClaw UI ผ่านหน้า `Channels`
+- รองรับ direct chat
+- รองรับข้อความตอบกลับพร้อม `media_url`
+- รองรับ `Webhook Secret` ผ่าน header `X-Pinto-Secret`
+- ตั้งค่าได้ผ่านหน้า `Channels > Pinto Chat` ใน OpenClaw
 
 ### สิ่งที่ต้องมี
 
-- OpenClaw ที่รันใช้งานได้แล้ว
+- OpenClaw ที่รันได้แล้ว
 - Node.js 20+ และ npm
 - Pinto bot ที่สร้างไว้แล้ว
-- Pinto bot ต้องมีค่าเหล่านี้
-  - Bot UUID จริงในฐานข้อมูล เช่น `_id`
-  - Webhook URL ที่ Pinto จะยิงเข้ามา
-  - ถ้าเปิดใช้ secret ต้องมีค่าเดียวกันทั้งสองฝั่ง
-- URL ที่ Pinto เข้าถึง OpenClaw ได้จริง
-  - ตัวอย่าง `https://your-host.example.com/plugins/pinto/webhook`
-  - หรือ Tailscale / reverse proxy ที่ชี้เข้า OpenClaw gateway
+- Bot UUID จริงของ Pinto
+- Pinto API base URL ที่ถูกต้อง เช่น `https://api-dev.pinto-app.com`
+- URL ที่ Pinto เข้าถึง OpenClaw ได้จริง เช่น domain, reverse proxy, Tailscale, tunnel
 
 ### การติดตั้ง
 
-#### แบบพัฒนาในเครื่อง
+#### ติดตั้งผ่าน OpenClaw package name
+
+วิธีที่แนะนำ:
+
+```bash
+openclaw plugins install @fakduai/pinto-app-openclaw
+```
+
+#### ติดตั้งจาก source ในเครื่อง
 
 ```bash
 git clone https://github.com/fakduai-logistics-and-digital-platform/pinto-openclaw-gateway.git
 cd pinto-openclaw-gateway
 npm install
 npm run build
-```
-
-#### ติดตั้งเข้า OpenClaw
-
-ติดตั้งจาก package name:
-
-```bash
-openclaw plugins install @fakduai/pinto-app-openclaw
-```
-
-ติดตั้งจาก local path:
-
-```bash
 openclaw plugins install .
 ```
 
-ถ้าคุณใช้งานแบบคัดลอกปลั๊กอินเอง ให้แน่ใจว่าไฟล์เหล่านี้ถูกคัดลอกไปยัง extension directory ของ OpenClaw:
+#### ติดตั้งแบบคัดลอกไฟล์เอง
+
+ถ้าคุณ deploy แบบ manual ให้คัดลอกไฟล์เหล่านี้ไปยัง OpenClaw extensions directory:
 
 - `dist/`
 - `openclaw.plugin.json`
 - `package.json`
 - `README.md`
 
-ตัวอย่าง path:
+ตัวอย่างปลายทาง:
 
 ```bash
 ~/.openclaw/extensions/@fakduai/pinto-app-openclaw
@@ -75,25 +70,25 @@ openclaw plugins install .
 
 ### การตั้งค่าใน OpenClaw
 
-ตั้งค่าได้ 2 แบบ:
+สามารถตั้งค่าได้สองแบบ:
 
-- ผ่าน OpenClaw UI ที่หน้า `Channels > Pinto Chat`
+- ผ่าน OpenClaw UI ที่ `Channels > Pinto Chat`
 - ผ่าน config file ของ OpenClaw
 
-ค่าที่ต้องกรอกมีดังนี้:
+ค่าที่ต้องกรอก:
 
 - `Api Url`
-  - URL ของ Pinto API
+  - Pinto API base URL
   - ใส่ได้ทั้งแบบมี `/` ท้ายหรือไม่มี `/` ท้าย
   - ตัวอย่าง `https://api-dev.pinto-app.com`
 - `Bot Id`
   - ต้องเป็น Bot UUID จริงของ Pinto
-  - ไม่ใช่ `bot_id` แบบ readable เช่น `this_a_bot`
+  - ไม่ใช่ `bot_id` แบบ slug
 - `Enabled`
-  - เปิดหรือปิด channel นี้
+  - เปิดหรือปิด channel
 - `Webhook Secret`
-  - ใช้ร่วมกับ header `X-Pinto-Secret`
-  - ถ้าไม่ได้ตั้งค่า ระบบจะไม่บังคับตรวจ inbound secret
+  - secret ที่ใช้ร่วมกับ header `X-Pinto-Secret`
+  - ถ้าไม่ได้ตั้งค่าไว้ ระบบจะไม่บังคับตรวจ secret ขาเข้า
 
 ตัวอย่าง config:
 
@@ -110,19 +105,28 @@ openclaw plugins install .
 }
 ```
 
+หมายเหตุ:
+
+- channel id ของปลั๊กอินคือ `pinto`
+- package name คือ `@fakduai/pinto-app-openclaw`
+
 ### การตั้งค่าฝั่ง Pinto
 
-สำหรับ Pinto bot แต่ละตัว ให้ตั้งค่าดังนี้
+Pinto bot ต้องมีข้อมูลต่อไปนี้:
 
 - `webhook_url`
+  - URL ที่ Pinto จะยิงเข้ามา
   - ตัวอย่าง:
   - `https://your-host.example.com/plugins/pinto/webhook`
 - Bot UUID
-  - ใช้ค่า `_id` ของ bot เป็น `Bot Id` ใน OpenClaw
+  - ใช้ค่า `_id` ของ bot เป็นค่า `Bot Id` ใน OpenClaw
+- ถ้ามีการเปิดใช้ secret
+  - Pinto ต้องส่ง header `X-Pinto-Secret` เข้ามา
+  - ค่า secret ต้องตรงกับ `Webhook Secret` ใน OpenClaw
 
-### เรื่อง Webhook Secret
+### Webhook Secret
 
-ปลั๊กอินนี้รองรับ `X-Pinto-Secret` แบบนี้
+ปลั๊กอินรองรับ `Webhook Secret` ทั้ง inbound และ outbound
 
 #### Inbound: Pinto -> OpenClaw
 
@@ -134,21 +138,21 @@ openclaw plugins install .
 X-Pinto-Secret: <your-secret>
 ```
 
-- ถ้าค่าไม่ตรง ปลั๊กอินจะตอบ `401`
+- ถ้าค่าไม่ตรง ปลั๊กอินจะตอบ `401 Unauthorized`
 
-ถ้า OpenClaw ไม่มีการตั้ง `Webhook Secret`:
+ถ้าไม่ได้ตั้ง `Webhook Secret`:
 
-- ปลั๊กอินจะไม่บังคับตรวจ header นี้
+- ปลั๊กอินจะไม่บังคับตรวจ secret ขาเข้า
 
 #### Outbound: OpenClaw -> Pinto
 
-เวลา OpenClaw ส่งผลลัพธ์กลับไปที่ Pinto API endpoint:
+เมื่อปลั๊กอินส่งข้อความกลับไป Pinto ที่:
 
 ```http
-POST /v1/bots/webhook/receive
+POST <apiUrl>/v1/bots/webhook/receive
 ```
 
-ปลั๊กอินจะส่ง header นี้ให้อัตโนมัติ ถ้ามีการตั้งค่า secret:
+ปลั๊กอินจะส่ง header นี้ให้อัตโนมัติ ถ้ามีการตั้ง `Webhook Secret`:
 
 ```http
 X-Pinto-Secret: <your-secret>
@@ -156,7 +160,7 @@ X-Pinto-Secret: <your-secret>
 
 ### Endpoint ที่เกี่ยวข้อง
 
-#### Inbound Webhook
+#### Inbound webhook
 
 Pinto จะเรียก:
 
@@ -176,9 +180,9 @@ POST /plugins/pinto/webhook
 }
 ```
 
-#### Outbound Webhook Receive
+#### Outbound reply
 
-ปลั๊กอินจะส่งกลับไปยัง Pinto:
+ปลั๊กอินจะส่ง:
 
 ```http
 POST <apiUrl>/v1/bots/webhook/receive
@@ -194,7 +198,7 @@ POST <apiUrl>/v1/bots/webhook/receive
 }
 ```
 
-หรือถ้ามี media:
+ตัวอย่างเมื่อมี media:
 
 ```json
 {
@@ -205,9 +209,26 @@ POST <apiUrl>/v1/bots/webhook/receive
 }
 ```
 
-### วิธีทดสอบ
+### วิธีเชื่อมต่อแบบแนะนำ
 
-#### 1. ทดสอบ inbound แบบ local
+1. ติดตั้งปลั๊กอินด้วย:
+
+```bash
+openclaw plugins install @fakduai/pinto-app-openclaw
+```
+
+2. รีสตาร์ต OpenClaw หรือ reload plugins
+3. เปิดหน้า `Channels > Pinto Chat`
+4. กรอก `Api Url`, `Bot Id`, `Webhook Secret`
+5. กด `Save`
+6. ตั้งค่า `webhook_url` ของ Pinto bot ให้ชี้มาที่ `/plugins/pinto/webhook`
+7. ทดสอบ webhook ก่อนด้วย `curl`
+8. ส่งข้อความจริงจาก Pinto
+9. ตรวจว่า OpenClaw ตอบกลับเข้า Pinto ได้
+
+### การทดสอบ
+
+#### ทดสอบ inbound แบบ local
 
 ```bash
 curl -i -X POST http://127.0.0.1:18789/plugins/pinto/webhook \
@@ -221,13 +242,13 @@ curl -i -X POST http://127.0.0.1:18789/plugins/pinto/webhook \
   }'
 ```
 
-ผลลัพธ์ที่คาดหวัง:
+response ที่คาดหวัง:
 
 ```json
 {"message":"Message forwarded to agent"}
 ```
 
-#### 2. ทดสอบ inbound แบบ public URL
+#### ทดสอบ inbound แบบ public URL
 
 ```bash
 curl -i -X POST https://your-host.example.com/plugins/pinto/webhook \
@@ -241,7 +262,7 @@ curl -i -X POST https://your-host.example.com/plugins/pinto/webhook \
   }'
 ```
 
-#### 3. ทดสอบ outbound ตรงไปที่ Pinto API
+#### ทดสอบ outbound ตรงไปที่ Pinto API
 
 ```bash
 curl -i -X POST https://api-dev.pinto-app.com/v1/bots/webhook/receive \
@@ -254,55 +275,43 @@ curl -i -X POST https://api-dev.pinto-app.com/v1/bots/webhook/receive \
   }'
 ```
 
-### ขั้นตอนเชื่อมต่อแบบแนะนำ
-
-1. ติดตั้งปลั๊กอินและรัน `npm run build`
-2. ติดตั้งปลั๊กอินเข้า OpenClaw หรือคัดลอกไปที่ extension path
-3. รีสตาร์ต OpenClaw gateway
-4. เปิดหน้า `Channels > Pinto Chat`
-5. กรอก `Api Url`, `Bot Id`, `Webhook Secret`
-6. กด `Save`
-7. ตั้ง `webhook_url` ของ Pinto bot ให้ชี้มาที่ `/plugins/pinto/webhook`
-8. ทดสอบด้วย `curl` ก่อน
-9. ส่งข้อความจริงจาก Pinto
-10. ตรวจว่าปลั๊กอินสามารถตอบกลับเข้า Pinto ได้
-
 ### Troubleshooting
 
-#### 404 Not Found ที่ public URL
+#### 404 Not Found
 
 สาเหตุที่พบบ่อย:
 
-- ยิงผิด method เช่นเปิดผ่าน browser เป็น `GET`
-- reverse proxy ไม่ได้ forward มาที่ OpenClaw gateway
+- เปิด URL ผ่าน browser ด้วย `GET` แทน `POST`
+- reverse proxy หรือ tunnel ไม่ได้ forward มาที่ OpenClaw gateway
 - path ไม่ถูก ต้องใช้ `/plugins/pinto/webhook`
 
 #### 401 Unauthorized
 
 สาเหตุที่พบบ่อย:
 
-- Pinto ส่ง `X-Pinto-Secret` มาไม่ตรงกับ `Webhook Secret` ใน OpenClaw
-- OpenClaw ส่ง `X-Pinto-Secret` กลับไป Pinto ไม่ตรงกับค่าที่ Pinto คาดไว้
+- ค่า `X-Pinto-Secret` ไม่ตรงกัน
+- Pinto ส่ง secret มาไม่ตรงกับ `Webhook Secret` ใน OpenClaw
+- OpenClaw ส่ง secret กลับไป Pinto ไม่ตรงกับค่าที่ Pinto คาดไว้
 
 #### 400 Invalid request body
 
 สาเหตุที่พบบ่อย:
 
-- ใช้ `bot_id` ผิดค่า
-- ใช้ `chat_id` ผิด environment
-- payload ที่ส่งไป `/v1/bots/webhook/receive` ไม่ตรงกับ spec ฝั่ง Pinto
+- `Bot Id` ไม่ใช่ UUID จริง
+- `chat_id` อยู่คนละ environment
+- payload ที่ส่งไป `POST /v1/bots/webhook/receive` ไม่ตรงกับ backend Pinto
 
 #### ไม่เห็นข้อความตอบกลับใน Pinto
 
 ตรวจตามนี้:
 
-- `Api Url` ชี้ environment ถูกหรือไม่
-- `Bot Id` เป็น UUID จริงหรือไม่
+- `Api Url` ถูก environment หรือไม่
+- `Bot Id` ถูกต้องหรือไม่
 - `chat_id` เป็นห้องจริงหรือไม่
 - Pinto API รับ `POST /v1/bots/webhook/receive` สำเร็จหรือไม่
 - `X-Pinto-Secret` ตรงกันทั้งสองฝั่งหรือไม่
 
-### พัฒนาและทดสอบ
+### การพัฒนา
 
 ```bash
 npm install
@@ -310,74 +319,65 @@ npm run build
 npm test
 ```
 
-### เวอร์ชันและ dependency
-
-- Node.js 20+
-- OpenClaw `>=2026.0.0`
-- TypeScript
-- Zod
-- Vitest
-
 ## English
 
 ### Overview
 
-This plugin connects Pinto Chat to OpenClaw using a channel plugin flow:
+`@fakduai/pinto-app-openclaw` is an OpenClaw channel plugin for Pinto Chat.
+
+Flow:
 
 1. A user sends a message in Pinto
-2. Pinto API calls the OpenClaw webhook at `/plugins/pinto/webhook`
+2. Pinto calls the OpenClaw webhook at `/plugins/pinto/webhook`
 3. The plugin forwards the message to an OpenClaw agent
-4. The plugin sends the agent response back to Pinto via `POST /v1/bots/webhook/receive`
+4. The plugin sends the final reply back to Pinto through `POST /v1/bots/webhook/receive`
 
-Supported features:
+Main features:
 
-- Direct chat messages
-- Replies with optional `media_url`
-- `Webhook Secret` support through `X-Pinto-Secret`
-- OpenClaw UI configuration through `Channels`
+- Direct chat support
+- Optional `media_url` in replies
+- `Webhook Secret` support via `X-Pinto-Secret`
+- OpenClaw UI configuration in `Channels > Pinto Chat`
 
 ### Requirements
 
 - A working OpenClaw instance
 - Node.js 20+ and npm
 - An existing Pinto bot
-- The Pinto bot must have:
-  - A real bot UUID from the database
-  - A reachable webhook URL
-  - A shared secret if webhook security is enabled
+- The real Pinto bot UUID
+- A valid Pinto API base URL such as `https://api-dev.pinto-app.com`
 - A public or reachable URL that Pinto can call
 
 ### Installation
+
+#### Install by package name
+
+Recommended:
+
+```bash
+openclaw plugins install @fakduai/pinto-app-openclaw
+```
+
+#### Install from local source
 
 ```bash
 git clone https://github.com/fakduai-logistics-and-digital-platform/pinto-openclaw-gateway.git
 cd pinto-openclaw-gateway
 npm install
 npm run build
-```
-
-Install into OpenClaw:
-
-Install from package name:
-
-```bash
-openclaw plugins install @fakduai/pinto-app-openclaw
-```
-
-Install from local path:
-
-```bash
 openclaw plugins install .
 ```
 
-If you deploy by copying files manually, copy:
+#### Manual deployment
+
+If you deploy by copying files manually, copy these files into the OpenClaw extensions directory:
 
 - `dist/`
 - `openclaw.plugin.json`
 - `package.json`
 - `README.md`
 
-Typical runtime location:
+Example destination:
 
 ```bash
 ~/.openclaw/extensions/@fakduai/pinto-app-openclaw
@@ -387,23 +387,24 @@ Typical runtime location:
 
 You can configure the plugin either:
 
-- In the OpenClaw UI under `Channels > Pinto Chat`
+- In the OpenClaw UI at `Channels > Pinto Chat`
 - In the OpenClaw config file
 
 Fields:
 
 - `Api Url`
   - Pinto API base URL
-  - With or without a trailing slash is fine
+  - With or without a trailing slash is supported
 - `Bot Id`
   - Must be the real Pinto bot UUID
-  - Do not use the readable `bot_id` slug
+  - Do not use the human-readable bot slug
 - `Enabled`
   - Enables or disables the channel
 - `Webhook Secret`
   - Shared secret used with `X-Pinto-Secret`
+  - If empty, inbound secret validation is not enforced
 
-Example:
+Example config:
 
 ```json
 {
@@ -418,19 +419,28 @@ Example:
 }
 ```
 
-### Pinto Bot Configuration
+Notes:
 
-Configure your Pinto bot with:
+- The channel id is `pinto`
+- The package name is `@fakduai/pinto-app-openclaw`
+
+### Pinto Configuration
+
+Your Pinto bot must have:
 
 - `webhook_url`
+  - The URL Pinto calls
   - Example:
   - `https://your-host.example.com/plugins/pinto/webhook`
 - Bot UUID
   - Use the bot `_id` as `Bot Id` in OpenClaw
+- If webhook security is enabled
+  - Pinto must send `X-Pinto-Secret`
+  - The value must match the OpenClaw `Webhook Secret`
 
 ### Webhook Secret
 
-The plugin supports `X-Pinto-Secret` as follows.
+The plugin supports `Webhook Secret` for both inbound and outbound requests.
 
 #### Inbound: Pinto -> OpenClaw
 
@@ -442,21 +452,21 @@ If `Webhook Secret` is configured in OpenClaw:
 X-Pinto-Secret: <your-secret>
 ```
 
-- If the value does not match, the plugin returns `401`
+- If the value does not match, the plugin returns `401 Unauthorized`
 
-If no secret is configured in OpenClaw:
+If no `Webhook Secret` is configured:
 
 - The plugin does not enforce inbound secret validation
 
 #### Outbound: OpenClaw -> Pinto
 
-When the plugin sends a response back to Pinto via:
+When the plugin sends replies back to Pinto through:
 
 ```http
-POST /v1/bots/webhook/receive
+POST <apiUrl>/v1/bots/webhook/receive
 ```
 
-it automatically sends:
+it automatically includes:
 
 ```http
 X-Pinto-Secret: <your-secret>
@@ -466,7 +476,7 @@ when `Webhook Secret` is configured.
 
 ### Relevant Endpoints
 
-#### Inbound Webhook
+#### Inbound webhook
 
 Pinto calls:
 
@@ -486,7 +496,7 @@ Example request body:
 }
 ```
 
-#### Outbound Reply to Pinto
+#### Outbound reply
 
 The plugin sends:
 
@@ -494,7 +504,7 @@ The plugin sends:
 POST <apiUrl>/v1/bots/webhook/receive
 ```
 
-Example request body:
+Example body:
 
 ```json
 {
@@ -515,9 +525,26 @@ Media example:
 }
 ```
 
+### Recommended Setup Flow
+
+1. Install the plugin with:
+
+```bash
+openclaw plugins install @fakduai/pinto-app-openclaw
+```
+
+2. Restart OpenClaw or reload plugins
+3. Open `Channels > Pinto Chat`
+4. Fill in `Api Url`, `Bot Id`, and `Webhook Secret`
+5. Save the channel config
+6. Set the Pinto bot `webhook_url` to `/plugins/pinto/webhook`
+7. Test the webhook with `curl`
+8. Send a real message from Pinto
+9. Confirm that OpenClaw replies back into Pinto
+
 ### Testing
 
-#### 1. Local inbound test
+#### Local inbound test
 
 ```bash
 curl -i -X POST http://127.0.0.1:18789/plugins/pinto/webhook \
@@ -537,7 +564,7 @@ Expected response:
 {"message":"Message forwarded to agent"}
 ```
 
-#### 2. Public inbound test
+#### Public inbound test
 
 ```bash
 curl -i -X POST https://your-host.example.com/plugins/pinto/webhook \
@@ -551,7 +578,7 @@ curl -i -X POST https://your-host.example.com/plugins/pinto/webhook \
   }'
 ```
 
-#### 3. Direct outbound test to Pinto API
+#### Direct outbound test to Pinto API
 
 ```bash
 curl -i -X POST https://api-dev.pinto-app.com/v1/bots/webhook/receive \
@@ -564,51 +591,39 @@ curl -i -X POST https://api-dev.pinto-app.com/v1/bots/webhook/receive \
   }'
 ```
 
-### Recommended Setup Flow
-
-1. Install the plugin and run `npm run build`
-2. Install or copy the plugin into the OpenClaw extension directory
-3. Restart the OpenClaw gateway
-4. Open `Channels > Pinto Chat`
-5. Fill in `Api Url`, `Bot Id`, and `Webhook Secret`
-6. Save the channel config
-7. Set the Pinto bot `webhook_url` to `/plugins/pinto/webhook`
-8. Test with `curl`
-9. Send a real message from Pinto
-10. Verify the reply is delivered back to Pinto
-
 ### Troubleshooting
 
 #### 404 Not Found
 
 Common causes:
 
-- Using `GET` in a browser instead of `POST`
-- Reverse proxy is not forwarding to the OpenClaw gateway
-- Wrong path. Use `/plugins/pinto/webhook`
+- Opening the webhook URL in a browser with `GET` instead of `POST`
+- Your reverse proxy or tunnel is not forwarding to OpenClaw
+- The path is wrong. Use `/plugins/pinto/webhook`
 
 #### 401 Unauthorized
 
 Common causes:
 
-- Pinto sends the wrong `X-Pinto-Secret`
-- OpenClaw sends the wrong `X-Pinto-Secret` back to Pinto
+- `X-Pinto-Secret` does not match
+- Pinto sends the wrong secret to OpenClaw
+- OpenClaw sends the wrong secret back to Pinto
 
 #### 400 Invalid request body
 
 Common causes:
 
-- Wrong `bot_id`
-- Wrong `chat_id` for the current environment
-- Payload mismatch for `/v1/bots/webhook/receive`
+- `Bot Id` is not a real UUID
+- `chat_id` belongs to a different environment
+- The payload sent to `POST /v1/bots/webhook/receive` does not match Pinto backend expectations
 
-#### No reply in Pinto
+#### No reply appears in Pinto
 
 Check:
 
 - `Api Url` points to the correct environment
-- `Bot Id` is a real UUID
-- `chat_id` exists
+- `Bot Id` is correct
+- `chat_id` is a real chat
 - Pinto API accepts `POST /v1/bots/webhook/receive`
 - `X-Pinto-Secret` matches on both sides
 
@@ -619,11 +634,3 @@ npm install
 npm run build
 npm test
 ```
-
-### Stack
-
-- Node.js 20+
-- OpenClaw `>=2026.0.0`
-- TypeScript
-- Zod
-- Vitest
