@@ -1,6 +1,6 @@
 {
     "name": "pinto-openclaw-gateway",
-    "version": "1.1.8",
+    "version": "1.1.9",
     "description": "OpenClaw Channel Plugin for Pinto Chat",
     "type": "module",
     "main": "dist/index.js",
