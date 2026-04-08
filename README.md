@@ -86,6 +86,10 @@ openclaw plugins install .
   - ไม่ใช่ `bot_id` แบบ slug
 - `Enabled`
   - เปิดหรือปิด channel
+- `Agent Id`
+  - optional
+  - ถ้าตั้งค่าไว้ bot นี้จะถูก route ไปยัง agent ที่ระบุโดยตรง
+  - ถ้าไม่ตั้งค่า OpenClaw จะใช้ routing/config ปกติของระบบ
 - `Webhook Secret`
   - secret ที่ใช้ร่วมกับ header `X-Pinto-Secret`
   - ถ้าไม่ได้ตั้งค่าไว้ ระบบจะไม่บังคับตรวจ secret ขาเข้า
@@ -99,6 +103,7 @@ openclaw plugins install .
 - ระบบจะเติมค่าเริ่มต้น `enabled: true`
 - ระบบจะเติม `apiUrl` เป็น `https://api.pinto-app.com`
 - ระบบจะเติม `botId` เป็นสตริงว่าง `""`
+- ระบบจะเติม `agentId` เป็นสตริงว่าง `""`
 - ระบบจะ generate `webhookSecret` ให้ 1 ค่าอัตโนมัติ
 - ระบบจะเติม `webhookPath` เป็น `/plugins/pinto/webhook`
 - ผู้ใช้ยังต้องกรอก `botId` เองจาก Pinto bot จริง
@@ -112,6 +117,7 @@ openclaw plugins install .
       "enabled": true,
       "apiUrl": "https://api.pinto-app.com",
       "botId": "",
+      "agentId": "",
       "webhookSecret": "pinto-oc-9f3a1b7c5d2e8k4m",
       "webhookPath": "/plugins/pinto/webhook"
     }
@@ -135,6 +141,7 @@ openclaw plugins install .
           "enabled": true,
           "apiUrl": "https://api.pinto-app.com",
           "botId": "20387880-7934-40c3-b7d4-9fa6557697cf",
+          "agentId": "sales-agent",
           "webhookSecret": "pinto-oc-sales-secret",
           "webhookPath": "/plugins/pinto/sales"
         },
@@ -142,6 +149,7 @@ openclaw plugins install .
           "enabled": true,
           "apiUrl": "https://api.pinto-app.com",
           "botId": "d03cb2fd-6fd6-4d93-8f30-111111111111",
+          "agentId": "support-agent",
           "webhookSecret": "pinto-oc-support-secret",
           "webhookPath": "/plugins/pinto/support"
         }
@@ -154,8 +162,10 @@ openclaw plugins install .
 แนวทางการใช้งาน:
 
 - Pinto bot แต่ละตัวควรมี `botId`, `webhookSecret`, และ `webhookPath` ของตัวเอง
+- ถ้าต้องการแยก agent ต่อ bot ให้กำหนด `agentId` ของแต่ละ account
 - ให้ตั้ง `webhook_url` ของแต่ละ bot ไปยัง path ของตัวเอง
-- จากนั้นใน OpenClaw สามารถ map account แต่ละตัวไปคนละ agent ได้ตาม routing/config ของ OpenClaw
+- ถ้ากำหนด `agentId` ไว้ ปลั๊กอินจะ route bot นั้นไป agent ที่ระบุทันที
+- ถ้าไม่กำหนด `agentId` ปลั๊กอินจะ fallback ไปใช้ routing/config ปกติของ OpenClaw
 - ห้ามใช้ `webhookPath` ซ้ำกันหลาย account เพราะ route จะชนกัน
 - `botId` ต้องตรงกับค่าที่ Pinto ส่งมาใน `payload.bot_id` จริง ไม่ควรใช้ alias ที่ตั้งเอง
 
@@ -163,6 +173,199 @@ openclaw plugins install .
 
 - channel id ของปลั๊กอินคือ `pinto`
 - package name คือ `pinto-app-openclaw`
+
+### วิธีสร้าง Agent และผูกกับ Pinto Bot
+
+`agentId` เป็น id ของ agent ฝั่ง OpenClaw ไม่ได้มาจาก Pinto
+
+แนวคิด:
+
+- `botId` คือ id ของ bot ใน Pinto
+- `agentId` คือ id ของ agent ใน OpenClaw
+- Pinto bot แต่ละตัวสามารถชี้ไป agent คนละตัวได้
+
+#### ขั้นตอนที่ 1: เพิ่ม agent ใน OpenClaw config
+
+แก้ไฟล์ `openclaw.json`
+
+ตำแหน่งไฟล์โดยทั่วไป:
+
+- macOS: `~/.openclaw/openclaw.json`
+- Windows: `%USERPROFILE%\.openclaw\openclaw.json`
+
+ตัวอย่าง:
+
+```json
+{
+  "agents": {
+    "list": [
+      {
+        "id": "main",
+        "name": "Main Agent",
+        "workspace": "~/.openclaw/workspace-main"
+      },
+      {
+        "id": "sales-agent",
+        "name": "Sales Agent",
+        "workspace": "~/.openclaw/workspace-sales"
+      }
+    ]
+  }
+}
+```
+
+ความหมาย:
+
+- `id` คือ `agentId` ที่จะเอาไปใส่ใน Pinto config
+- `name` คือชื่อที่อ่านง่าย
+- `workspace` คือโฟลเดอร์งานของ agent ตัวนั้น
+
+บน Windows ใช้ path แบบนี้ได้เช่นกัน:
+
+```json
+{
+  "agents": {
+    "list": [
+      {
+        "id": "main",
+        "name": "Main Agent",
+        "workspace": "C:\\Users\\Administrator\\.openclaw\\workspace-main"
+      },
+      {
+        "id": "sales-agent",
+        "name": "Sales Agent",
+        "workspace": "C:\\Users\\Administrator\\.openclaw\\workspace-sales"
+      }
+    ]
+  }
+}
+```
+
+#### ขั้นตอนที่ 2: สร้าง workspace ของ agent
+
+ตัวอย่าง path:
+
+- macOS:
+  - `~/.openclaw/workspace-main`
+  - `~/.openclaw/workspace-sales`
+- Windows:
+  - `C:\Users\Administrator\.openclaw\workspace-main`
+  - `C:\Users\Administrator\.openclaw\workspace-sales`
+
+ถ้าต้องการให้ agent มีบุคลิกหรือหน้าที่เฉพาะ ให้เพิ่มไฟล์ `AGENTS.md` ใน workspace ของ agent นั้น
+
+ตัวอย่าง `AGENTS.md`:
+
+```md
+You are the sales assistant for Pinto.
+Focus on product guidance, pricing, promotions, and converting leads.
+Be concise and helpful.
+```
+
+#### ขั้นตอนที่ 3: restart หรือ reload OpenClaw
+
+หลังแก้ `openclaw.json` ให้ restart OpenClaw หรือ reload plugins/config เพื่อให้ระบบรู้จัก agent ใหม่
+
+#### ขั้นตอนที่ 4: ใส่ agentId ใน Pinto config
+
+ตัวอย่าง single-account:
+
+```json
+{
+  "channels": {
+    "pinto": {
+      "enabled": true,
+      "apiUrl": "https://api.pinto-app.com",
+      "botId": "20387880-7934-40c3-b7d4-9fa6557697cf",
+      "agentId": "sales-agent",
+      "webhookSecret": "pinto-oc-9f3a1b7c5d2e8k4m",
+      "webhookPath": "/plugins/pinto/webhook"
+    }
+  }
+}
+```
+
+ตัวอย่าง multi-account:
+
+```json
+{
+  "channels": {
+    "pinto": {
+      "defaultAccount": "sales",
+      "accounts": {
+        "sales": {
+          "enabled": true,
+          "apiUrl": "https://api.pinto-app.com",
+          "botId": "bot-sales",
+          "agentId": "sales-agent",
+          "webhookSecret": "secret-sales",
+          "webhookPath": "/plugins/pinto/sales"
+        },
+        "support": {
+          "enabled": true,
+          "apiUrl": "https://api.pinto-app.com",
+          "botId": "bot-support",
+          "agentId": "main",
+          "webhookSecret": "secret-support",
+          "webhookPath": "/plugins/pinto/support"
+        }
+      }
+    }
+  }
+}
+```
+
+#### ขั้นตอนที่ 5: ตั้งค่าฝั่ง Pinto
+
+ใน Pinto bot ให้ตั้ง:
+
+- `webhook_url = <public-openclaw-base-url> + <webhookPath>`
+- `X-Pinto-Secret` ให้ตรงกับ `webhookSecret`
+
+ตัวอย่าง:
+
+- `sales-agent` ใช้ path `/plugins/pinto/sales`
+- `webhook_url` เป็น `https://bot.example.com/plugins/pinto/sales`
+
+#### ขั้นตอนที่ 6: ทดสอบ
+
+ทดสอบ healthcheck:
+
+```bash
+curl -i https://bot.example.com/plugins/pinto/sales
+```
+
+ควรได้:
+
+```json
+{"ok":true,"channel":"pinto"}
+```
+
+ทดสอบ webhook:
+
+```bash
+curl -i -X POST https://bot.example.com/plugins/pinto/sales \
+  -H 'Content-Type: application/json' \
+  -H 'X-Pinto-Secret: secret-sales' \
+  -d '{
+    "bot_id":"bot-sales",
+    "chat_id":"chat-001",
+    "message":"โปรโมชั่นวันนี้มีอะไรบ้าง",
+    "user_id":"user-123"
+  }'
+```
+
+ผลที่ควรเกิด:
+
+- Pinto ยิง webhook เข้ามา
+- plugin ตรวจ `botId`, `webhookSecret`, และ `webhookPath`
+- ถ้าตั้ง `agentId` ไว้ ระบบจะ route ไป agent ตัวนั้นทันที
+- จากนั้นคำตอบของ agent จะถูกส่งกลับไป Pinto
+
+หมายเหตุ:
+
+- ถ้ายังไม่ได้แยก agent หลายตัว ให้ใช้ `agentId: "main"` ได้เลย
+- ถ้าไม่ใส่ `agentId` ปลั๊กอินจะ fallback ไปใช้ routing ปกติของ OpenClaw
 
 ### การตั้งค่าฝั่ง Pinto
 
@@ -458,6 +661,10 @@ Fields:
   - Do not use the human-readable bot slug
 - `Enabled`
   - Enables or disables the channel
+- `Agent Id`
+  - Optional
+  - If set, this bot will be routed directly to that OpenClaw agent
+  - If empty, the plugin falls back to normal OpenClaw routing
 - `Webhook Secret`
   - Shared secret used with `X-Pinto-Secret`
   - If empty, inbound secret validation is not enforced
@@ -471,6 +678,7 @@ Example config:
       "enabled": true,
       "apiUrl": "https://api.pinto-app.com",
       "botId": "",
+      "agentId": "",
       "webhookSecret": "pinto-oc-9f3a1b7c5d2e8k4m",
       "webhookPath": "/plugins/pinto/webhook"
     }
@@ -490,6 +698,7 @@ Multi-account example:
           "enabled": true,
           "apiUrl": "https://api.pinto-app.com",
           "botId": "20387880-7934-40c3-b7d4-9fa6557697cf",
+          "agentId": "sales-agent",
           "webhookSecret": "pinto-oc-sales-secret",
           "webhookPath": "/plugins/pinto/sales"
         },
@@ -497,6 +706,7 @@ Multi-account example:
           "enabled": true,
           "apiUrl": "https://api.pinto-app.com",
           "botId": "d03cb2fd-6fd6-4d93-8f30-111111111111",
+          "agentId": "support-agent",
           "webhookSecret": "pinto-oc-support-secret",
           "webhookPath": "/plugins/pinto/support"
         }
@@ -509,7 +719,10 @@ Multi-account example:
 Multi-account notes:
 
 - Each Pinto bot should have its own `botId`, `webhookSecret`, and `webhookPath`
+- If you want a specific bot to use a specific agent, set `agentId` on that account
 - Each bot's `webhook_url` should point to its own unique path
+- When `agentId` is set, the plugin routes that bot directly to the named agent
+- When `agentId` is empty, the plugin falls back to normal OpenClaw routing
 - Do not reuse the same `webhookPath` across multiple accounts, or routes will collide
 - `botId` must exactly match the value Pinto sends in `payload.bot_id`
 
@@ -517,6 +730,193 @@ Notes:
 
 - The channel id is `pinto`
 - The package name is `pinto-app-openclaw`
+
+### How To Create An Agent And Connect It To A Pinto Bot
+
+`agentId` comes from OpenClaw, not from Pinto.
+
+Concept:
+
+- `botId` is the Pinto bot id
+- `agentId` is the OpenClaw agent id
+- Each Pinto bot can use a different OpenClaw agent
+
+#### Step 1: Add the agent to OpenClaw config
+
+Edit `openclaw.json`
+
+Common locations:
+
+- macOS: `~/.openclaw/openclaw.json`
+- Windows: `%USERPROFILE%\.openclaw\openclaw.json`
+
+Example:
+
+```json
+{
+  "agents": {
+    "list": [
+      {
+        "id": "main",
+        "name": "Main Agent",
+        "workspace": "~/.openclaw/workspace-main"
+      },
+      {
+        "id": "sales-agent",
+        "name": "Sales Agent",
+        "workspace": "~/.openclaw/workspace-sales"
+      }
+    ]
+  }
+}
+```
+
+Windows path example:
+
+```json
+{
+  "agents": {
+    "list": [
+      {
+        "id": "main",
+        "name": "Main Agent",
+        "workspace": "C:\\Users\\Administrator\\.openclaw\\workspace-main"
+      },
+      {
+        "id": "sales-agent",
+        "name": "Sales Agent",
+        "workspace": "C:\\Users\\Administrator\\.openclaw\\workspace-sales"
+      }
+    ]
+  }
+}
+```
+
+#### Step 2: Create the agent workspace
+
+Example paths:
+
+- macOS:
+  - `~/.openclaw/workspace-main`
+  - `~/.openclaw/workspace-sales`
+- Windows:
+  - `C:\Users\Administrator\.openclaw\workspace-main`
+  - `C:\Users\Administrator\.openclaw\workspace-sales`
+
+If you want a dedicated persona or behavior for that agent, add `AGENTS.md` inside that workspace.
+
+Example `AGENTS.md`:
+
+```md
+You are the sales assistant for Pinto.
+Focus on product guidance, pricing, promotions, and converting leads.
+Be concise and helpful.
+```
+
+#### Step 3: Restart or reload OpenClaw
+
+After editing `openclaw.json`, restart OpenClaw or reload config/plugins so the new agent becomes available.
+
+#### Step 4: Set `agentId` in Pinto config
+
+Single-account example:
+
+```json
+{
+  "channels": {
+    "pinto": {
+      "enabled": true,
+      "apiUrl": "https://api.pinto-app.com",
+      "botId": "20387880-7934-40c3-b7d4-9fa6557697cf",
+      "agentId": "sales-agent",
+      "webhookSecret": "pinto-oc-9f3a1b7c5d2e8k4m",
+      "webhookPath": "/plugins/pinto/webhook"
+    }
+  }
+}
+```
+
+Multi-account example:
+
+```json
+{
+  "channels": {
+    "pinto": {
+      "defaultAccount": "sales",
+      "accounts": {
+        "sales": {
+          "enabled": true,
+          "apiUrl": "https://api.pinto-app.com",
+          "botId": "bot-sales",
+          "agentId": "sales-agent",
+          "webhookSecret": "secret-sales",
+          "webhookPath": "/plugins/pinto/sales"
+        },
+        "support": {
+          "enabled": true,
+          "apiUrl": "https://api.pinto-app.com",
+          "botId": "bot-support",
+          "agentId": "main",
+          "webhookSecret": "secret-support",
+          "webhookPath": "/plugins/pinto/support"
+        }
+      }
+    }
+  }
+}
+```
+
+#### Step 5: Configure Pinto
+
+In your Pinto bot settings:
+
+- set `webhook_url = <public-openclaw-base-url> + <webhookPath>`
+- set `X-Pinto-Secret` to match `webhookSecret`
+
+Example:
+
+- `sales-agent` uses `/plugins/pinto/sales`
+- `webhook_url` becomes `https://bot.example.com/plugins/pinto/sales`
+
+#### Step 6: Test it
+
+Healthcheck:
+
+```bash
+curl -i https://bot.example.com/plugins/pinto/sales
+```
+
+Expected:
+
+```json
+{"ok":true,"channel":"pinto"}
+```
+
+Webhook test:
+
+```bash
+curl -i -X POST https://bot.example.com/plugins/pinto/sales \
+  -H 'Content-Type: application/json' \
+  -H 'X-Pinto-Secret: secret-sales' \
+  -d '{
+    "bot_id":"bot-sales",
+    "chat_id":"chat-001",
+    "message":"What promotions are available today?",
+    "user_id":"user-123"
+  }'
+```
+
+Expected behavior:
+
+- Pinto sends the webhook
+- the plugin validates `botId`, `webhookSecret`, and `webhookPath`
+- if `agentId` is set, the message is routed directly to that agent
+- the reply is sent back to Pinto
+
+Notes:
+
+- If you do not need multiple agents yet, start with `agentId: "main"`
+- If `agentId` is omitted, the plugin falls back to normal OpenClaw routing
 
 ### Pinto Configuration
 

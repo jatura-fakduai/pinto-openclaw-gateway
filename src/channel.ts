@@ -42,6 +42,7 @@ const PintoAccountConfigSchema = z
     enabled: z.boolean().default(true),
     apiUrl: z.string().trim().min(1).default(DEFAULT_PINTO_API_URL),
     botId: z.string().trim().optional(),
+    agentId: z.string().trim().optional(),
     webhookSecret: PintoSecretInputSchema,
     webhookPath: z.string().trim().min(1).default(DEFAULT_PINTO_WEBHOOK_PATH),
   })
@@ -89,6 +90,7 @@ export const buildDefaultPintoChannelConfig = () => ({
   enabled: true,
   apiUrl: DEFAULT_PINTO_API_URL,
   botId: "",
+  agentId: "",
   webhookSecret: generatePintoWebhookSecret(),
   webhookPath: DEFAULT_PINTO_WEBHOOK_PATH,
 });
@@ -97,6 +99,7 @@ type PintoSetupInput = {
   name?: string;
   apiUrl?: string;
   botId?: string;
+  agentId?: string;
   webhookSecret?: unknown;
   webhookPath?: string;
 };
@@ -111,6 +114,7 @@ const hasTopLevelPintoConfig = (cfg: any) => {
       !Array.isArray(channelConfig) &&
       (
         channelConfig.botId !== undefined ||
+        channelConfig.agentId !== undefined ||
         channelConfig.webhookSecret !== undefined ||
         channelConfig.webhookHeaderValue !== undefined ||
         channelConfig.apiUrl !== undefined ||
@@ -317,6 +321,10 @@ export const pintoPlugin: ChannelPlugin<any, any> & { configSchema?: any } = {
         input.botId !== undefined
           ? input.botId.trim() || undefined
           : resolved.botId?.trim() || undefined;
+      const nextAgentId =
+        input.agentId !== undefined
+          ? input.agentId.trim() || undefined
+          : resolved.agentId?.trim() || undefined;
       const nextWebhookPath =
         input.webhookPath !== undefined
           ? normalizeWebhookPath(input.webhookPath)
@@ -330,6 +338,7 @@ export const pintoPlugin: ChannelPlugin<any, any> & { configSchema?: any } = {
           apiUrl:
             input.apiUrl?.trim() || resolved.apiUrl || DEFAULT_PINTO_API_URL,
           ...(nextBotId ? { botId: nextBotId } : {}),
+          ...(nextAgentId ? { agentId: nextAgentId } : {}),
           webhookSecret:
             (inputWebhookSecret ? input.webhookSecret : undefined) ||
             (resolvedWebhookSecret ? resolved.webhookSecret : undefined) ||
@@ -397,6 +406,7 @@ export const pintoPlugin: ChannelPlugin<any, any> & { configSchema?: any } = {
         account.config?.apiUrl?.trim() && account.config?.botId?.trim(),
       ),
       botId: account.config?.botId?.trim() || null,
+      agentId: account.config?.agentId?.trim() || null,
       webhookPath:
         account.config?.webhookPath?.trim() || DEFAULT_PINTO_WEBHOOK_PATH,
     }),
@@ -444,6 +454,7 @@ export const pintoPlugin: ChannelPlugin<any, any> & { configSchema?: any } = {
     startAccount: async (ctx: any) => {
       const account = getPintoChannelConfig(ctx.cfg, ctx.accountId);
       const configuredBotId = account?.botId?.trim();
+      const configuredAgentId = account?.agentId?.trim();
       const webhookPath = normalizeWebhookPath(account?.webhookPath);
       if (
         account?.enabled === false ||
@@ -499,16 +510,28 @@ export const pintoPlugin: ChannelPlugin<any, any> & { configSchema?: any } = {
             ctx.setStatus?.({
               accountId: ctx.accountId,
               configuredBotId,
+              configuredAgentId: configuredAgentId || null,
               webhookPath,
               lastInboundAt: Date.now(),
             });
 
-            const route = ctx.channelRuntime.routing.resolveAgentRoute({
-              cfg: ctx.cfg,
-              channel: "pinto",
-              accountId: ctx.accountId,
-              peer: { kind: "direct", id: payload.chat_id },
-            });
+            const peer = { kind: "direct", id: payload.chat_id };
+            const route = configuredAgentId
+              ? {
+                  accountId: ctx.accountId,
+                  sessionKey: ctx.channelRuntime.routing.buildAgentSessionKey({
+                    agentId: configuredAgentId,
+                    channel: "pinto",
+                    accountId: ctx.accountId,
+                    peer,
+                  }),
+                }
+              : ctx.channelRuntime.routing.resolveAgentRoute({
+                  cfg: ctx.cfg,
+                  channel: "pinto",
+                  accountId: ctx.accountId,
+                  peer,
+                });
 
             const msgCtx = ctx.channelRuntime.reply.finalizeInboundContext({
               Body: payload.message ?? "",

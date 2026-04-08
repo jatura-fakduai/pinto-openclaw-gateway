@@ -49,6 +49,7 @@ describe("plugin registration", () => {
             enabled: true,
             apiUrl: "https://api.pinto-app.com",
             botId: "",
+            agentId: "",
             webhookPath: "/plugins/pinto/webhook",
           }),
         }),
