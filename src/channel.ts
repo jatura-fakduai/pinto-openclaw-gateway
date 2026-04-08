@@ -467,6 +467,13 @@ export const pintoPlugin: ChannelPlugin<any, any> & { configSchema?: any } = {
         accountId: ctx.accountId,
         handler: async (req, res) => {
           try {
+            if (req.method === "GET") {
+              res.statusCode = 200;
+              res.setHeader?.("Content-Type", "application/json");
+              res.end(JSON.stringify({ ok: true, channel: "pinto" }));
+              return true;
+            }
+
             const configuredSecret = normalizeWebhookSecret(
               account?.webhookSecret,
             );
