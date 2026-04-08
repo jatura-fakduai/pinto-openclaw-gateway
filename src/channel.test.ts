@@ -40,6 +40,36 @@ describe("pintoPlugin", () => {
     });
   });
 
+  describe("config.describeAccount", () => {
+    it("should use botId as the account name when configured", () => {
+      const account = pintoPlugin.config.resolveAccount!(
+        {
+          channels: {
+            pinto: {
+              accounts: {
+                bot1: {
+                  apiUrl: "https://api.pinto-app.com",
+                  botId: "bot-123",
+                },
+              },
+            },
+          },
+        },
+        "bot1",
+      );
+
+      const result = pintoPlugin.config.describeAccount!(account);
+      expect(result).toMatchObject({
+        accountId: "bot1",
+        name: "bot-123",
+        enabled: true,
+        configured: true,
+        botId: "bot-123",
+        webhookPath: "/plugins/pinto/webhook",
+      });
+    });
+  });
+
   describe("setup.applyAccountConfig", () => {
     it("should apply default Pinto config and generate a webhook secret", () => {
       const next = pintoPlugin.setup!.applyAccountConfig({
@@ -51,6 +81,7 @@ describe("pintoPlugin", () => {
       expect(next.channels.pinto.enabled).toBe(true);
       expect(next.channels.pinto.apiUrl).toBe("https://api.pinto-app.com");
       expect(next.channels.pinto.webhookSecret).toMatch(/^pinto-oc-[a-f0-9]{24}$/);
+      expect(next.channels.pinto.webhookPath).toBe("/plugins/pinto/webhook");
     });
 
     it("should keep an existing webhook secret when setup runs again", () => {
@@ -70,6 +101,34 @@ describe("pintoPlugin", () => {
 
       expect(next.channels.pinto.webhookSecret).toBe(
         "pinto-oc-existingsecret123",
+      );
+    });
+
+    it("should update botId, webhookSecret, and webhookPath from setup input", () => {
+      const next = pintoPlugin.setup!.applyAccountConfig({
+        cfg: {
+          channels: {
+            pinto: {
+              enabled: true,
+              apiUrl: "https://api.pinto-app.com",
+              botId: "bot-old",
+              webhookSecret: "secret-old",
+              webhookPath: "/plugins/pinto/webhook",
+            },
+          },
+        },
+        accountId: "default",
+        input: {
+          botId: "bot-new",
+          webhookSecret: "secret-new",
+          webhookPath: "/plugins/pinto/custom-webhook",
+        },
+      } as any);
+
+      expect(next.channels.pinto.botId).toBe("bot-new");
+      expect(next.channels.pinto.webhookSecret).toBe("secret-new");
+      expect(next.channels.pinto.webhookPath).toBe(
+        "/plugins/pinto/custom-webhook",
       );
     });
   });

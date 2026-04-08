@@ -89,12 +89,17 @@ openclaw plugins install .
 - `Webhook Secret`
   - secret ที่ใช้ร่วมกับ header `X-Pinto-Secret`
   - ถ้าไม่ได้ตั้งค่าไว้ ระบบจะไม่บังคับตรวจ secret ขาเข้า
+- `Webhook Path`
+  - path ของ webhook endpoint บน OpenClaw
+  - ค่าเริ่มต้นคือ `/plugins/pinto/webhook`
+  - ใช้ path นี้ไปประกอบกับ public base URL ของ OpenClaw เพื่อเอาไปตั้งใน Pinto
 
 หลังติดตั้งและเปิด setup ของ channel:
 
 - ระบบจะเติมค่าเริ่มต้น `enabled: true`
 - ระบบจะเติม `apiUrl` เป็น `https://api.pinto-app.com`
 - ระบบจะ generate `webhookSecret` ให้ 1 ค่าอัตโนมัติ
+- ระบบจะเติม `webhookPath` เป็น `/plugins/pinto/webhook`
 - ผู้ใช้ยังต้องกรอก `botId` เองจาก Pinto bot จริง
 
 ตัวอย่าง config:
@@ -106,7 +111,8 @@ openclaw plugins install .
       "enabled": true,
       "apiUrl": "https://api.pinto-app.com",
       "botId": "20387880-7934-40c3-b7d4-9fa6557697cf",
-      "webhookSecret": "pinto-oc-9f3a1b7c5d2e8k4m"
+      "webhookSecret": "pinto-oc-9f3a1b7c5d2e8k4m",
+      "webhookPath": "/plugins/pinto/webhook"
     }
   }
 }
@@ -125,6 +131,10 @@ Pinto bot ต้องมีข้อมูลต่อไปนี้:
   - URL ที่ Pinto จะยิงเข้ามา
   - ตัวอย่าง:
   - `https://your-host.example.com/plugins/pinto/webhook`
+- วิธีประกอบค่า:
+  - `webhook_url = <public-openclaw-base-url> + <Webhook Path>`
+  - ตัวอย่างเช่น ถ้า OpenClaw เปิดผ่าน `https://bot.example.com` และ `Webhook Path` เป็น `/plugins/pinto/custom-webhook`
+  - ให้ใส่ `https://bot.example.com/plugins/pinto/custom-webhook`
 - Bot UUID
   - ใช้ค่า `_id` ของ bot เป็นค่า `Bot Id` ใน OpenClaw
 - ถ้ามีการเปิดใช้ secret
