@@ -1,9 +1,12 @@
 import type { IncomingMessage } from "node:http";
-import type { ChannelPlugin, RuntimeEnv } from "openclaw/plugin-sdk";
+import type {
+  ChannelPlugin,
+  RuntimeEnv,
+} from "openclaw/plugin-sdk/mattermost";
 import {
   buildChannelConfigSchema,
   registerPluginHttpRoute,
-} from "openclaw/plugin-sdk";
+} from "openclaw/plugin-sdk/mattermost";
 import { z } from "zod";
 import { PintoWebhookPayload, PintoWebhookReceiveRequest } from "./types.js";
 

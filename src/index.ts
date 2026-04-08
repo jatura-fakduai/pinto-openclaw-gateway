@@ -1,4 +1,4 @@
-import type { OpenClawPluginApi } from "openclaw/plugin-sdk";
+import type { OpenClawPluginApi } from "openclaw/plugin-sdk/mattermost";
 import { pintoPlugin, setPintoRuntime } from "./channel.js";
 
 const plugin = {
