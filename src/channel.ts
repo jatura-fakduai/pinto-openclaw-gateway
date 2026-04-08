@@ -37,6 +37,16 @@ const PintoSecretInputSchema = z
   ])
   .optional();
 
+const PintoAccountConfigSchema = z
+  .object({
+    enabled: z.boolean().default(true),
+    apiUrl: z.string().trim().min(1).default(DEFAULT_PINTO_API_URL),
+    botId: z.string().trim().optional(),
+    webhookSecret: PintoSecretInputSchema,
+    webhookPath: z.string().trim().min(1).default(DEFAULT_PINTO_WEBHOOK_PATH),
+  })
+  .strict();
+
 const PintoChannelConfigSchema = z.preprocess((raw) => {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
     return raw;
@@ -52,15 +62,10 @@ const PintoChannelConfigSchema = z.preprocess((raw) => {
   delete value.webhookHeaderValue;
   return value;
 },
-z
-  .object({
-    enabled: z.boolean().default(true),
-    apiUrl: z.string().trim().min(1).default(DEFAULT_PINTO_API_URL),
-    botId: z.string().trim().optional(),
-    webhookSecret: PintoSecretInputSchema,
-    webhookPath: z.string().trim().min(1).default(DEFAULT_PINTO_WEBHOOK_PATH),
-  })
-  .strict());
+PintoAccountConfigSchema.extend({
+  accounts: z.record(z.string(), PintoAccountConfigSchema.optional()).optional(),
+  defaultAccount: z.string().trim().min(1).optional(),
+}));
 
 const generatePintoWebhookSecret = () =>
   `pinto-oc-${randomBytes(12).toString("hex")}`;
@@ -96,9 +101,49 @@ type PintoSetupInput = {
   webhookPath?: string;
 };
 
+const getRawPintoChannelConfig = (cfg: any) => cfg?.channels?.pinto ?? {};
+
+const hasTopLevelPintoConfig = (cfg: any) => {
+  const channelConfig = getRawPintoChannelConfig(cfg);
+  return Boolean(
+    channelConfig &&
+      typeof channelConfig === "object" &&
+      !Array.isArray(channelConfig) &&
+      (
+        channelConfig.botId !== undefined ||
+        channelConfig.webhookSecret !== undefined ||
+        channelConfig.webhookHeaderValue !== undefined ||
+        channelConfig.apiUrl !== undefined ||
+        channelConfig.webhookPath !== undefined ||
+        channelConfig.enabled !== undefined
+      ),
+  );
+};
+
+const listPintoAccountIds = (cfg: any): string[] => {
+  const channelConfig = getRawPintoChannelConfig(cfg);
+  const accountIds = Object.keys(channelConfig?.accounts ?? {});
+  if (hasTopLevelPintoConfig(cfg) || accountIds.length === 0) {
+    return Array.from(new Set([DEFAULT_ACCOUNT_ID, ...accountIds]));
+  }
+  return accountIds;
+};
+
+const resolveDefaultPintoAccountId = (cfg: any): string => {
+  const channelConfig = getRawPintoChannelConfig(cfg);
+  const configuredDefault = channelConfig?.defaultAccount?.trim();
+  if (
+    configuredDefault &&
+    listPintoAccountIds(cfg).includes(configuredDefault)
+  ) {
+    return configuredDefault;
+  }
+  return DEFAULT_ACCOUNT_ID;
+};
+
 const getPintoChannelConfig = (cfg: any, accountId?: string | null) => {
-  const resolvedAccountId = accountId ?? "default";
-  const channelConfig = cfg?.channels?.pinto ?? {};
+  const resolvedAccountId = accountId ?? resolveDefaultPintoAccountId(cfg);
+  const channelConfig = getRawPintoChannelConfig(cfg);
   const accountConfig = channelConfig.accounts?.[resolvedAccountId];
   const merged = {
     enabled: true,
@@ -303,10 +348,8 @@ export const pintoPlugin: ChannelPlugin<any, any> & { configSchema?: any } = {
   },
 
   config: {
-    listAccountIds: (cfg: any) => {
-      return ["default"];
-    },
-    defaultAccountId: () => DEFAULT_ACCOUNT_ID,
+    listAccountIds: (cfg: any) => listPintoAccountIds(cfg),
+    defaultAccountId: (cfg: any) => resolveDefaultPintoAccountId(cfg),
     setAccountEnabled: ({
       cfg,
       accountId,

@@ -45,6 +45,57 @@ describe("pintoPlugin", () => {
       expect(pintoPlugin.config.defaultAccountId!({} as any)).toBe("default");
     });
 
+    it("should read account ids from multi-account config", () => {
+      const accountIds = pintoPlugin.config.listAccountIds!({
+        channels: {
+          pinto: {
+            defaultAccount: "sales",
+            accounts: {
+              sales: {
+                apiUrl: "https://api.pinto-app.com",
+                botId: "bot-sales",
+              },
+              support: {
+                apiUrl: "https://api.pinto-app.com",
+                botId: "bot-support",
+              },
+            },
+          },
+        },
+      } as any);
+
+      expect(accountIds).toEqual(["sales", "support"]);
+    });
+
+    it("should preserve default top-level account for single-account config", () => {
+      const accountIds = pintoPlugin.config.listAccountIds!({
+        channels: {
+          pinto: {
+            apiUrl: "https://api.pinto-app.com",
+            botId: "bot-123",
+          },
+        },
+      } as any);
+
+      expect(accountIds).toEqual(["default"]);
+    });
+
+    it("should expose configured defaultAccountId for multi-account config", () => {
+      expect(
+        pintoPlugin.config.defaultAccountId!({
+          channels: {
+            pinto: {
+              defaultAccount: "support",
+              accounts: {
+                sales: {},
+                support: {},
+              },
+            },
+          },
+        } as any),
+      ).toBe("support");
+    });
+
     it("should set account enabled state in config", () => {
       const next = pintoPlugin.config.setAccountEnabled!({
         cfg: {
@@ -61,6 +112,28 @@ describe("pintoPlugin", () => {
       } as any);
 
       expect(next.channels.pinto.enabled).toBe(false);
+    });
+
+    it("should resolve account-specific config for multi-account entries", () => {
+      const account = pintoPlugin.config.resolveAccount!(
+        {
+          channels: {
+            pinto: {
+              accounts: {
+                support: {
+                  apiUrl: "https://api.pinto-app.com",
+                  botId: "bot-support",
+                  webhookPath: "/plugins/pinto/support",
+                },
+              },
+            },
+          },
+        },
+        "support",
+      );
+
+      expect(account.config.botId).toBe("bot-support");
+      expect(account.config.webhookPath).toBe("/plugins/pinto/support");
     });
   });
 

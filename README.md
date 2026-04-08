@@ -98,7 +98,8 @@ openclaw plugins install .
 
 - ระบบจะเติมค่าเริ่มต้น `enabled: true`
 - ระบบจะเติม `apiUrl` เป็น `https://api.pinto-app.com`
-- ระบบจะ generate `webhookHeaderValue` ให้ 1 ค่าอัตโนมัติ
+- ระบบจะเติม `botId` เป็นสตริงว่าง `""`
+- ระบบจะ generate `webhookSecret` ให้ 1 ค่าอัตโนมัติ
 - ระบบจะเติม `webhookPath` เป็น `/plugins/pinto/webhook`
 - ผู้ใช้ยังต้องกรอก `botId` เองจาก Pinto bot จริง
 
@@ -110,13 +111,51 @@ openclaw plugins install .
     "pinto": {
       "enabled": true,
       "apiUrl": "https://api.pinto-app.com",
-      "botId": "20387880-7934-40c3-b7d4-9fa6557697cf",
-      "webhookHeaderValue": "pinto-oc-9f3a1b7c5d2e8k4m",
+      "botId": "",
+      "webhookSecret": "pinto-oc-9f3a1b7c5d2e8k4m",
       "webhookPath": "/plugins/pinto/webhook"
     }
   }
 }
 ```
+
+### หลาย Pinto Bot ใน 1 OpenClaw
+
+ปลั๊กอินรองรับทั้งแบบ single-account และ multi-account
+
+ตัวอย่างแบบ multi-account:
+
+```json
+{
+  "channels": {
+    "pinto": {
+      "defaultAccount": "sales",
+      "accounts": {
+        "sales": {
+          "enabled": true,
+          "apiUrl": "https://api.pinto-app.com",
+          "botId": "20387880-7934-40c3-b7d4-9fa6557697cf",
+          "webhookSecret": "pinto-oc-sales-secret",
+          "webhookPath": "/plugins/pinto/sales"
+        },
+        "support": {
+          "enabled": true,
+          "apiUrl": "https://api.pinto-app.com",
+          "botId": "d03cb2fd-6fd6-4d93-8f30-111111111111",
+          "webhookSecret": "pinto-oc-support-secret",
+          "webhookPath": "/plugins/pinto/support"
+        }
+      }
+    }
+  }
+}
+```
+
+แนวทางการใช้งาน:
+
+- Pinto bot แต่ละตัวควรมี `botId`, `webhookSecret`, และ `webhookPath` ของตัวเอง
+- ให้ตั้ง `webhook_url` ของแต่ละ bot ไปยัง path ของตัวเอง
+- จากนั้นใน OpenClaw สามารถ map account แต่ละตัวไปคนละ agent ได้ตาม routing/config ของ OpenClaw
 
 หมายเหตุ:
 
@@ -429,8 +468,37 @@ Example config:
     "pinto": {
       "enabled": true,
       "apiUrl": "https://api.pinto-app.com",
-      "botId": "20387880-7934-40c3-b7d4-9fa6557697cf",
-      "webhookHeaderValue": "pinto-oc-9f3a1b7c5d2e8k4m"
+      "botId": "",
+      "webhookSecret": "pinto-oc-9f3a1b7c5d2e8k4m",
+      "webhookPath": "/plugins/pinto/webhook"
+    }
+  }
+}
+```
+
+Multi-account example:
+
+```json
+{
+  "channels": {
+    "pinto": {
+      "defaultAccount": "sales",
+      "accounts": {
+        "sales": {
+          "enabled": true,
+          "apiUrl": "https://api.pinto-app.com",
+          "botId": "20387880-7934-40c3-b7d4-9fa6557697cf",
+          "webhookSecret": "pinto-oc-sales-secret",
+          "webhookPath": "/plugins/pinto/sales"
+        },
+        "support": {
+          "enabled": true,
+          "apiUrl": "https://api.pinto-app.com",
+          "botId": "d03cb2fd-6fd6-4d93-8f30-111111111111",
+          "webhookSecret": "pinto-oc-support-secret",
+          "webhookPath": "/plugins/pinto/support"
+        }
+      }
     }
   }
 }
