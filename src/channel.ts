@@ -497,7 +497,7 @@ export const pintoPlugin: ChannelPlugin<any, any> & { configSchema?: any } = {
 
       const unregister = registerPluginHttpRoute({
         path: webhookPath,
-        auth: "plugin",
+        auth: "gateway",
         replaceExisting: true,
         pluginId: "pinto",
         accountId: ctx.accountId,
@@ -507,6 +507,13 @@ export const pintoPlugin: ChannelPlugin<any, any> & { configSchema?: any } = {
               res.statusCode = 200;
               res.setHeader?.("Content-Type", "application/json");
               res.end(JSON.stringify({ ok: true, channel: "pinto" }));
+              return true;
+            }
+
+            if (req.method !== "POST") {
+              res.statusCode = 405;
+              res.setHeader?.("Content-Type", "application/json");
+              res.end(JSON.stringify({ error: "Method Not Allowed" }));
               return true;
             }
 
