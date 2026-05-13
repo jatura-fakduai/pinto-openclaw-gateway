@@ -5,7 +5,6 @@ import type {
   RuntimeEnv,
 } from "openclaw/plugin-sdk/mattermost";
 import {
-  DEFAULT_ACCOUNT_ID,
   applySetupAccountConfigPatch,
   buildChannelConfigSchema,
   registerPluginHttpRoute,
@@ -13,7 +12,7 @@ import {
 } from "openclaw/plugin-sdk/mattermost";
 import { z } from "zod";
 import { PintoWebhookPayload, PintoWebhookReceiveRequest } from "./types.js";
-
+const DEFAULT_ACCOUNT_ID = "default";
 const stripTrailingSlash = (url: string) => url.replace(/\/+$/, "");
 const PINTO_SECRET_HEADER = "x-pinto-secret";
 const DEFAULT_PINTO_API_URL = "https://api.pinto-app.com";
