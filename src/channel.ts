@@ -2,15 +2,15 @@ import { randomBytes } from "node:crypto";
 import type { IncomingMessage } from "node:http";
 import type {
   ChannelPlugin,
-  RuntimeEnv,
-} from "openclaw/plugin-sdk/mattermost";
+  PluginRuntime as RuntimeEnv,
+} from "openclaw/plugin-sdk/core";
 import {
   DEFAULT_ACCOUNT_ID,
-  applySetupAccountConfigPatch,
   buildChannelConfigSchema,
-  registerPluginHttpRoute,
   setAccountEnabledInConfigSection,
-} from "openclaw/plugin-sdk/mattermost";
+} from "openclaw/plugin-sdk/core";
+import { applySetupAccountConfigPatch } from "openclaw/plugin-sdk/setup";
+import { registerPluginHttpRoute } from "openclaw/plugin-sdk/webhook-ingress";
 import { z } from "zod";
 import { PintoWebhookPayload, PintoWebhookReceiveRequest } from "./types.js";
 
@@ -169,6 +169,20 @@ const getPintoChannelConfig = (cfg: any, accountId?: string | null) => {
   return {
     ...merged,
   };
+};
+
+
+const findPintoAccountByBotId = (cfg: any, botId: string) => {
+  const targetBotId = botId.trim();
+  if (!targetBotId) return null;
+  for (const accountId of listPintoAccountIds(cfg)) {
+    const account = getPintoChannelConfig(cfg, accountId);
+    if (account?.enabled === false) continue;
+    if (account?.botId?.trim() === targetBotId) {
+      return { accountId, account };
+    }
+  }
+  return null;
 };
 
 const buildPintoHeaders = (webhookSecret?: string) => {
@@ -511,8 +525,31 @@ export const pintoPlugin: ChannelPlugin<any, any> & { configSchema?: any } = {
               return true;
             }
 
+            const payload = await readJsonBody(req);
+            if (!payload.bot_id || !payload.chat_id) {
+              res.statusCode = 400;
+              res.end(JSON.stringify({ error: "Missing required fields" }));
+              return true;
+            }
+
+            const matched = findPintoAccountByBotId(ctx.cfg, payload.bot_id);
+            if (!matched) {
+              res.statusCode = 403;
+              res.end(JSON.stringify({ error: "Invalid bot_id for configured Pinto accounts" }));
+              return true;
+            }
+
+            const targetAccountId = matched.accountId;
+            const targetAccount = matched.account;
+            const targetBotId = targetAccount?.botId?.trim();
+            const targetAgentId = targetAccount?.agentId?.trim();
+            const targetObserverAgentIds =
+              normalizeObserverAgentIds(targetAccount?.observerAgentIds)?.filter(
+                (agentId) => agentId !== targetAgentId,
+              ) || [];
+
             const configuredSecret = normalizeWebhookSecret(
-              account?.webhookSecret,
+              targetAccount?.webhookSecret,
             );
             const inboundSecret = getRequestHeader(req, PINTO_SECRET_HEADER);
             if (configuredSecret && inboundSecret !== configuredSecret) {
@@ -521,42 +558,30 @@ export const pintoPlugin: ChannelPlugin<any, any> & { configSchema?: any } = {
               return true;
             }
 
-            const payload = await readJsonBody(req);
-            if (!payload.bot_id || !payload.chat_id) {
-              res.statusCode = 400;
-              res.end(JSON.stringify({ error: "Missing required fields" }));
-              return true;
-            }
-            if (payload.bot_id !== configuredBotId) {
-              res.statusCode = 403;
-              res.end(JSON.stringify({ error: "Invalid bot_id for this account" }));
-              return true;
-            }
-
             ctx.setStatus?.({
-              accountId: ctx.accountId,
-              configuredBotId,
-              configuredAgentId: configuredAgentId || null,
-              configuredObserverAgentIds: observerAgentIds,
+              accountId: targetAccountId,
+              configuredBotId: targetBotId,
+              configuredAgentId: targetAgentId || null,
+              configuredObserverAgentIds: targetObserverAgentIds,
               webhookPath,
               lastInboundAt: Date.now(),
             });
 
             const peer = { kind: "direct", id: payload.chat_id };
-            const route = configuredAgentId
+            const route = targetAgentId
               ? {
-                  accountId: ctx.accountId,
+                  accountId: targetAccountId,
                   sessionKey: ctx.channelRuntime.routing.buildAgentSessionKey({
-                    agentId: configuredAgentId,
+                    agentId: targetAgentId,
                     channel: "pinto",
-                    accountId: ctx.accountId,
+                    accountId: targetAccountId,
                     peer,
                   }),
                 }
               : ctx.channelRuntime.routing.resolveAgentRoute({
                   cfg: ctx.cfg,
                   channel: "pinto",
-                  accountId: ctx.accountId,
+                  accountId: targetAccountId,
                   peer,
                 });
 
@@ -584,17 +609,17 @@ export const pintoPlugin: ChannelPlugin<any, any> & { configSchema?: any } = {
 
             const msgCtx = buildMsgCtx(route.sessionKey, route.accountId);
 
-            for (const observerAgentId of observerAgentIds) {
+            for (const observerAgentId of targetObserverAgentIds) {
               const observerSessionKey =
                 ctx.channelRuntime.routing.buildAgentSessionKey({
                   agentId: observerAgentId,
                   channel: "pinto",
-                  accountId: ctx.accountId,
+                  accountId: targetAccountId,
                   peer,
                 });
               const observerCtx = buildMsgCtx(
                 observerSessionKey,
-                ctx.accountId,
+                targetAccountId,
               );
 
               // Observer agents share the inbound context but never reply back to Pinto.
@@ -628,7 +653,7 @@ export const pintoPlugin: ChannelPlugin<any, any> & { configSchema?: any } = {
                     if (!text) return;
                     await sendPintoText({
                       cfg: ctx.cfg,
-                      accountId: ctx.accountId,
+                      accountId: targetAccountId,
                       to: payload.chat_id,
                       text,
                     });
