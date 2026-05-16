@@ -225,6 +225,8 @@ const normalizeObserverAgentIds = (value: unknown): string[] | undefined => {
   return normalized.length ? Array.from(new Set(normalized)) : undefined;
 };
 
+const stripPintoPrefix = (id: string) => id.replace(/^pinto:/, "");
+
 async function sendPintoText(params: {
   cfg: any;
   accountId?: string | null;
@@ -243,7 +245,7 @@ async function sendPintoText(params: {
 
   const payload: PintoWebhookReceiveRequest = {
     bot_id: botId,
-    chat_id: params.to,
+    chat_id: stripPintoPrefix(params.to),
     reply_message: params.text,
   };
 
@@ -466,7 +468,7 @@ export const pintoPlugin: ChannelPlugin<any, any> & { configSchema?: any } = {
 
       const payload: PintoWebhookReceiveRequest = {
         bot_id: botId,
-        chat_id: to,
+        chat_id: stripPintoPrefix(to),
         reply_message: text,
         media_url: mediaUrl,
       };
