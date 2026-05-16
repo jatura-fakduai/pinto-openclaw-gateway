@@ -513,7 +513,7 @@ export const pintoPlugin: ChannelPlugin<any, any> & { configSchema?: any } = {
 
       const unregister = registerPluginHttpRoute({
         path: webhookPath,
-        auth: "gateway",
+        auth: "plugin",
         replaceExisting: true,
         pluginId: "pinto",
         accountId: ctx.accountId,
