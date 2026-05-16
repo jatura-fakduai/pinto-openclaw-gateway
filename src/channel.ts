@@ -13,7 +13,6 @@ import { applySetupAccountConfigPatch } from "openclaw/plugin-sdk/setup";
 import { registerPluginHttpRoute } from "openclaw/plugin-sdk/webhook-ingress";
 import { z } from "zod";
 import { PintoWebhookPayload, PintoWebhookReceiveRequest } from "./types.js";
-
 const stripTrailingSlash = (url: string) => url.replace(/\/+$/, "");
 const PINTO_SECRET_HEADER = "x-pinto-secret";
 const DEFAULT_PINTO_API_URL = "https://api.pinto-app.com";
@@ -512,7 +511,7 @@ export const pintoPlugin: ChannelPlugin<any, any> & { configSchema?: any } = {
 
       const unregister = registerPluginHttpRoute({
         path: webhookPath,
-        auth: "plugin",
+        auth: "gateway",
         replaceExisting: true,
         pluginId: "pinto",
         accountId: ctx.accountId,
@@ -522,6 +521,13 @@ export const pintoPlugin: ChannelPlugin<any, any> & { configSchema?: any } = {
               res.statusCode = 200;
               res.setHeader?.("Content-Type", "application/json");
               res.end(JSON.stringify({ ok: true, channel: "pinto" }));
+              return true;
+            }
+
+            if (req.method !== "POST") {
+              res.statusCode = 405;
+              res.setHeader?.("Content-Type", "application/json");
+              res.end(JSON.stringify({ error: "Method Not Allowed" }));
               return true;
             }
 
@@ -547,6 +553,7 @@ export const pintoPlugin: ChannelPlugin<any, any> & { configSchema?: any } = {
               normalizeObserverAgentIds(targetAccount?.observerAgentIds)?.filter(
                 (agentId) => agentId !== targetAgentId,
               ) || [];
+
 
             const configuredSecret = normalizeWebhookSecret(
               targetAccount?.webhookSecret,
